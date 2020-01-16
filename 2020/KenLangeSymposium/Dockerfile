@@ -28,7 +28,7 @@ ENV PATH /usr/local/sbin:/usr/local/bin:$PATH
 ENV LD_LIBRARY_PATH /usr/local/lib:/usr/local/lib64
 
 # Julia
-ENV JULIA_VER_MAJ 1.1
+ENV JULIA_VER_MAJ 1.3
 ENV JULIA_VER_MIN .0
 ENV JULIA_VER $JULIA_VER_MAJ$JULIA_VER_MIN
 
@@ -43,5 +43,6 @@ ENV JULIA_PKGDIR /usr/local/julia/share/julia/site
 RUN julia -e 'using Pkg; \
     Pkg.add([ \
     PackageSpec(url="https://github.com/alanderos91/BioSimulator.jl"), \
-    PackageSpec(name="Plots")]); \
+    PackageSpec(name="Plots"), \
+    PackageSpec(name="DataFrames")]); \
     Pkg.test("BioSimulator");'
