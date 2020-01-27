@@ -6,6 +6,18 @@ options:
 
 ```{julia; results = "hidden"}
 # TODO: run the installation script once
+using Pkg
+
+bundle = [
+    PackageSpec(
+        name = "BioSimulator",
+        url = "https://github.com/alanderos/BioSimulator.jl",
+        rev = "0dcc836eb88f987b88c34551fd56301366c4ce0c"),
+    PackageSpec(name = "Plots"),
+    PackageSpec(name = "DataFrames")
+]
+
+Pkg.add(bundle)
 ```
 
 ```{julia}
@@ -38,9 +50,9 @@ This simplified description adequately captures the interesting features of regu
 
 ### Model specification
 
-The `Network` object is the workhorse for discrete spatial-free models in BioSimulator.
+The `Network` object is the workhorse for discrete, spatial-free models in BioSimulator.
 It collects coupled `Reaction` objects that describe interactions between `Species`.
-The present example emphasizes biochemical reactions in gene networks, but the software applies to general population dynamics that can be described within a continuous-time Markov chain framework.
+This example emphasizes biochemical reactions in gene networks, but the software applies to general population dynamics that can be described by continuous-time Markov processes.
 
 ```{julia}
 function negautoreg(;
@@ -86,15 +98,106 @@ ntrials = 10^3
 save_pts = 0:5:tfinal
 
 # generate a single realization
-trajectory = simulate(state, model, SortingDirect(), tfinal = tfinal)
-
+print("CPU time: ")
+trajectory = @time simulate(state, model, algorithm, tfinal = tfinal)
+println("number of event in a single trajectory: ", length(trajectory))
 # generate an ensemble
-ensemble = [simulate(state, model, SortingDirect(), tfinal = tfinal, save_points = save_pts) for _ in 1:ntrials]
+ensemble = [simulate(state, model, algorithm,
+    tfinal = tfinal,
+    save_points = save_pts) for _ in 1:ntrials]
 ```
 
 ### Handling simulation data
 
-#### Accessing results
+#### Working with output directly
+
+The output of a single simulation is a `SamplePath` object.
+It is a *recursive array* (thanks to RecursiveArrayTools.jl) that represents the state of a process $X_{t_{k}}$ at each time point $t_{k}$.
+
+Recall the ordering ($\mathrm{gene_{on}$, $\mathrm{gene_{off}}$, $\mathrm{RNA}$, $P$, and $P_{2}$).
+
+Access the $k$-th recorded state its index:
+
+```{julia}
+trajectory[1], trajectory[100], trajectory[end]
+```
+
+This convention is important for two reasons:
+
+1. passing a range always returns a `SamplePath`, and
+2. iterating over a `SamplePath` returns data at each time point.
+
+As an example, consider the following code:
+
+```{julia}
+for X in trajectory[1:10]
+    @show X
+end
+```
+
+Select the 4th component (protein monomer) at the 100th time point:
+
+```{julia}
+trajectory[4, 100]
+```
+
+Select the entire history for the protein monomer and dimer compartments:
+
+```{julia}
+trajectory[[4,5], :]
+```
+
+Retrieve the data for $t_{k}$:
+
+```{julia}
+trajectory.t
+```
+
+The general syntax is `trajectory[compartment_indices, timepoint_indices]` where either index set can be a scalar, list, or range.
+
+An `Ensemble` is simply an alias for `Vector{SamplePath{...}}`.
+Indexing a particular realization of a process works in the "obvious" way.
+
+Retrieve the data for the 100th realization:
+
+```{julia}
+ensemble[100]
+```
+
+Access data for the mRNA compartment in the 100th realization:
+
+```{julia}
+ensemble[100][3, :]
+```
+
+Compute summary statistics:
+
+```{julia}
+using Statistics
+
+mean(ensemble)
+```
+
+#### Passing to `DataFrame` objects
+
+Both `SamplePath` and `Ensemble` objects are compatible with the DataFrames.jl ecosystem in Julia.
+
+Convert a `SamplePath` into a `DataFrame`.
+The first column is always `t` and represents model time.
+The remaining columns are labeled `X1, X2, ...` and appear in the same order as defined in the original `Network` object.
+
+```{julia}
+import BioSimulator: tablefy # conversion sometimes gives the wrong layout depending on the DataFrames version
+
+# create the DataFrame
+df = DataFrame(tablefy(trajectory))
+
+# change the column labels
+rename!(df, [:time, :gene_on, :gene_off, :mRNA, :monomer, :dimer])
+
+# select the last 10 records
+last(df, 10)
+```
 
 #### Plotting `SamplePath` data
 
@@ -136,7 +239,7 @@ plot(trajectory,
     ylabel = "counts",
     title = species_labels,
     layout = grid(5, 1),
-    size = (400,600),
+    size = (800,600),
     legend = false)
 ```
 
@@ -150,7 +253,7 @@ panelA = plot(trajectory,
     legend = false)
 
 panelB = plot(trajectory,
-    vars = (4,5), title = "protein", label = ["monomer" "dimer"], legend = :left)
+    vars = (4,5), title = "protein", label = ["monomer" "dimer"], legend = :right)
 
 plot(panelA, panelB,
     xlabel = "time (A.U.)",
@@ -166,7 +269,7 @@ plot(panelA, panelB,
 panelA = plot(ensemble,
     vars = (1,2),
     title = "gene",
-    ylabel = "Pr(state)",
+    ylabel = "average count",
     label = ["ON" "OFF"])
 
 panelB = plot(ensemble, summary = :mean,
@@ -231,4 +334,48 @@ plot(ensemble, summary = :phase,
     ylabel = "dimer",
     colorbar = true,
     colorbar_title = "time")
+```
+
+## Exercises
+
+### Example: First-passage problems
+
+```{julia}
+simdata = [simulate(state, model, algorithm, tfinal = 100.0) for _ in 1:100]
+
+hitting_time = zeros(length(simdata))
+
+for i in eachindex(simdata)
+    # retrieve the data for realization i
+    xw = simdata[i]
+
+    # find the index k such that all genes are blocked
+    k = findfirst(isequal(0), xw[1, :])
+
+    # record the hitting time
+    hitting_time[i] = k == nothing ? Inf : xw.t[k]
+end
+
+mean(hitting_time), std(hitting_time)
+```
+
+Compute the probability $\Pr(X_{4}(t) > 20)$ at $t = 25$ using the estimator
+$$
+\sum_{n} 1\left{X_{4}^{(n)}(t) > 20 \right}
+$$
+
+```{julia}
+simdata = [simulate(state, model, algorithm, tfinal = 26.0, save_points = [0.0, 25.0]) for _ in 1:5*10^3]
+
+indicator = zeros(length(simdata))
+
+for i in eachindex(simdata)
+    # retrieve the data for realization i
+    xw = simdata[i]
+
+    # record the hitting time
+    indicator[i] = xw[4, end] > 20
+end
+
+mean(indicator), std(indicator)
 ```
