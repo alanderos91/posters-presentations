@@ -6,18 +6,18 @@ options:
 
 ```{julia; results = "hidden"}
 # TODO: run the installation script once
-using Pkg
-
-bundle = [
-    PackageSpec(
-        name = "BioSimulator",
-        url = "https://github.com/alanderos/BioSimulator.jl",
-        rev = "0dcc836eb88f987b88c34551fd56301366c4ce0c"),
-    PackageSpec(name = "Plots"),
-    PackageSpec(name = "DataFrames")
-]
-
-Pkg.add(bundle)
+# using Pkg
+#
+# bundle = [
+#     PackageSpec(
+#         name = "BioSimulator",
+#         url = "https://github.com/alanderos/BioSimulator.jl",
+#         rev = "0dcc836eb88f987b88c34551fd56301366c4ce0c"),
+#     PackageSpec(name = "Plots"),
+#     PackageSpec(name = "DataFrames")
+# ]
+#
+# Pkg.add(bundle)
 ```
 
 ```{julia}
@@ -98,13 +98,17 @@ ntrials = 10^3
 save_pts = 0:5:tfinal
 
 # generate a single realization
-print("CPU time: ")
+print("warm-up: ")
+trajectory = @time simulate(state, model, algorithm, tfinal = tfinal)
+
+print("compute time: ")
 trajectory = @time simulate(state, model, algorithm, tfinal = tfinal)
 println("number of event in a single trajectory: ", length(trajectory))
+
 # generate an ensemble
 ensemble = [simulate(state, model, algorithm,
     tfinal = tfinal,
-    save_points = save_pts) for _ in 1:ntrials]
+    save_points = save_pts) for _ in 1:ntrials];
 ```
 
 ### Handling simulation data
@@ -188,6 +192,7 @@ The remaining columns are labeled `X1, X2, ...` and appear in the same order as 
 
 ```{julia}
 import BioSimulator: tablefy # conversion sometimes gives the wrong layout depending on the DataFrames version
+using DataFrames
 
 # create the DataFrame
 df = DataFrame(tablefy(trajectory))
