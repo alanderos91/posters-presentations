@@ -83,9 +83,10 @@ function negautoreg(;
 end
 ```
 
-Create an instance of the model starting with 10 copies of the gene:
+Create an instance of the model starting with a single copy of the gene:
+
 ```{julia}
-network = negautoreg(x = [10, 0, 0, 0, 0])
+network = negautoreg(x = [1, 0, 0, 0, 0])
 ```
 
 We can review the species and reaction definitions within an interactive session:
@@ -158,14 +159,14 @@ Now let's try running a larger simulation study:
 
 1. We will simulate our model until $t = 500$ to examine long-term behavior.
 2. We will capture the output of a single simulation in a variable called `trajectory`. This simulation will store every reaction event.
-3. We will generate $10^{3}$ samples of the process and store the results in `ensemble`. We sample the state of the process every 5 units of time.
+3. We will generate $10^{3}$ samples of the process and store the results in `ensemble`. We sample the state of the process every 10 units of time.
 
 ```{julia}
 # simulation settings
 tfinal = 500.0
 algorithm = SortingDirect()
-ntrials = 10^3
-save_pts = 0:5:tfinal
+ntrials = 10^0
+save_pts = 0:10:tfinal
 
 # generate a single realization
 print("warm-up: ")
@@ -313,7 +314,7 @@ temp = species_list(network) |> keys |> collect
 species_labels = reshape(temp, 1, length(temp))
 
 plot(trajectory,
-    xlabel = "time (A.U.)",
+    xlabel = "time (arb. unit)",
     ylabel = "counts",
     label = species_labels)
 ```
@@ -325,7 +326,7 @@ We have a couple of choices for presenting the trajectories.
 
 ```{julia}
 plot(trajectory,
-    xlabel = "time (A.U.)",
+    xlabel = "time (arb. unit)",
     ylabel = "counts",
     title = species_labels,
     layout = grid(5, 1),
@@ -346,7 +347,7 @@ panelB = plot(trajectory,
     vars = (4,5), title = "protein", label = ["monomer" "dimer"], legend = :right)
 
 plot(panelA, panelB,
-    xlabel = "time (A.U.)",
+    xlabel = "time (arb. unit)",
     ylabel = "counts",
     layout = @layout [a{0.35w} a{0.65w}])
 ```
@@ -375,6 +376,7 @@ panelC = plot(ensemble,
     label = ["monomer" "dimer"])
 
 plot(panelA, panelB, panelC,
+    xlabel = "time (arb. unit)",
     layout = grid(3, 1),
     size = (500, 600))
 ```
@@ -391,21 +393,21 @@ animation = @animate for t in save_pts[2:end]
     figA = plot(ensemble, summary = :histogram, timepoint = t,
         vars = 3,
         title = "mRNA @ t = $(t)",
-        xlims = (0, 2),
+        xlims = (0, 3),
         ylims = (0, 1),
         normalize = :probability)
 
     figB = plot(ensemble, summary = :histogram, timepoint = t,
         vars = 4,
         title = "monomer",
-        xlims = (0, 60),
+        xlims = (0, 50),
         ylims = (0, 0.2),
         normalize = :probability)
 
     figC = plot(ensemble, summary = :histogram, timepoint = t,
         vars = 5,
         title = "dimer",
-        xlims = (0, 1000),
+        xlims = (0, 500),
         ylims = (0, 0.3),
         normalize = :probability)
 
