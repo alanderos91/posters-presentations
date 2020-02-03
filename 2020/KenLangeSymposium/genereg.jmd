@@ -1,36 +1,19 @@
 ---
 title: Modeling gene regulation with BioSimulator.jl
 options:
-    fig_ext: .svg
+    fig_ext: .png
+    eval: true
 ---
 
-```{julia; results = "hidden"}
-# TODO: run the installation script once
-# using Pkg
-#
-# bundle = [
-#     PackageSpec(
-#         name = "BioSimulator",
-#         url = "https://github.com/alanderos/BioSimulator.jl",
-#         rev = "0dcc836eb88f987b88c34551fd56301366c4ce0c"),
-#     PackageSpec(name = "Plots"),
-#     PackageSpec(name = "DataFrames")
-# ]
-#
-# Pkg.add(bundle)
-```
-
-```{julia}
-using BioSimulator
-```
-
-## Example 1: Negative auto-regulation
+## Negative auto-regulation
 
 This example introduces the interface and basic features of BioSimulator.jl.
 We will work with a model of gene regulation in prokaryotes taken from the text:
 
 > Wilkinson, D. J. (2006) *Stochastic Modelling for Systems Biology*.
 > 1st ed., Chapman & Hall / CRC, Boca Raton, FL.
+
+![wilkinson2006_pg14.png](wilkinson2006_pg14.png)
 
 Here dimers of a protein coded by a gene repress their own transcription by binding a regulatory region lying between the gene and its promoter.
 The flow of information can be summarized by $8$ biochemical reactions involving $5$ species:
@@ -40,13 +23,25 @@ $$
 \mathrm{gene_{on}} + P_{2} &\iff& \mathrm{gene_{off}} & \text{binding/unbinding} \\
 \mathrm{gene_{on}} &\longrightarrow& \mathrm{gene} + \mathrm{RNA} & \text{transcription} \\
 \mathrm{RNA} &\longrightarrow& \mathrm{RNA} + P & \text{translation} \\
-P + P &\longrightarrow& P_{2} & \text{dimerization/dissociaton} \\
+P + P &\iff& P_{2} & \text{dimerization/dissociaton} \\
 \mathrm{RNA} &\longrightarrow& \emptyset & \text{mRNA degradation} \\
 \mathrm{P} &\longrightarrow& \emptyset & \text{protein degradation}
 \end{eqnarray*}
 $$
 
-This simplified description adequately captures the interesting features of regulatory networks.
+This simplified description adequately captures interesting features of regulatory networks.
+We each reaction's total rate below, assuming mass action kinetics:
+
+| reaction            | order | rate constant | kinetic law |
+| -------------------:|:-----:|:-------------:| ----------- |
+| binding             | 2     | $k_{1}$       | $k_{1} \cdot \mathrm{gene_{on}} \cdot P_{2}$ |
+| unbinding           | 1     | $k_{2}$       | $k_{2} \cdot \mathrm{gene_{off}}$ |
+| transcription       | 1     | $k_{3}$       | $k_{3} \cdot \mathrm{gene_{on}}$ |
+| translation         | 1     | $k_{4}$       | $k_{4} \cdot \mathrm{RNA}$ |
+| dimerization        | 2     | $k_{5}$       | $k_{5} \cdot \binom{P}{2}$ |
+| dissociation        | 1     | $k_{6}$       | $k_{6} \cdot P_{2}$ |
+| mRNA degradation    | 1     | $k_{7}$       | $k_{7} \cdot RNA$ |
+| protein degradation | 1     | $k_{8}$       | $k_{8} \cdot P$ |
 
 ### Model specification
 
@@ -54,7 +49,12 @@ The `Network` object is the workhorse for discrete, spatial-free models in BioSi
 It collects coupled `Reaction` objects that describe interactions between `Species`.
 This example emphasizes biochemical reactions in gene networks, but the software applies to general population dynamics that can be described by continuous-time Markov processes.
 
+The following code implements our negative regulation model.
+We wrap our model inside a function in order to define an interface that allows us to change model parameters.
+
 ```{julia}
+using BioSimulator
+
 function negautoreg(;
     x = [1, 0, 0, 0, 0],
     k = [1.0, 10.0, 0.01, 10.0, 1.0, 1.0, 0.1, 0.01]
@@ -83,12 +83,82 @@ function negautoreg(;
 end
 ```
 
-### Simulation
-
+Create an instance of the model starting with 10 copies of the gene:
 ```{julia}
 network = negautoreg(x = [10, 0, 0, 0, 0])
+```
+
+We can review the species and reaction definitions within an interactive session:
+
+```{julia}
+species_list(network)
+```
+
+```{julia}
+reaction_list(network)
+```
+
+*For methods development:* The structure of a system's reaction dependency graph is automatically encoded.
+You can view this information by examining individual `Reaction` objects:
+
+```{julia}
+reaction_list(network)[:binding]
+```
+
+- Species *affected by* a given reaction are listed. These populations are changed whenever the reaction occurs.
+- The *affects* set enumerates species that change a reaction's total rate.
+
+### Simulation
+
+The `simulate` function works directly with `Network` objects.
+Note that a simulation may terminate early if the cumulative intensity reaches 0 (e.g. reaching an absorbing state).
+
+```{julia; eval = false}
+simulate(network::Network, algname::SimulationAlgorithm;
+            [tfinal = 0.0],
+            [rates_cache = HasRates],
+            [save_points = nothing])
+```
+
+#### Available algorithms
+
+See the [documentation](https://alanderos91.github.io/BioSimulator.jl/dev/man/algorithms/) for details.
+
+- Direct methods: `Direct()`, `EnhancedDirect()`, `SortingDirect()`
+- First reaction methods: `FirstReaction()`, `NextReaction()`
+- Rejection methods: `RejectionSSA()`
+- Pure $\tau$0leaping methods: `TauLeapingDG2001()`, `TauLeapingDGLP2003()`, `StepAnticipation()`
+- Hybrid $\tau$-leaping: `HybridSAL()`
+
+#### Keyword arguments
+
+- `tfinal`: The final simulation time.
+- `rates_cache`: Indicates the type of information stored in a rates cache. If `HasRates` is chosen, store the reaction rates. If `HasSums` is chosen, store partial sums of the rates. This effectively toggles between linear and binary searches, provided the algorithm supports the option.
+- `save_points`: An indexable collection indicating time points to sample and record system state. The default `nothing` forces saving after every reaction event (expensive).
+
+We can generate a *single* realization of the process as follows (`@time` is used to roughly measure performance):
+
+```{julia}
+@time simulate(network, Direct(), tfinal = 10.0);
+@time simulate(network, Direct(), tfinal = 10.0);
+```
+
+This approach is sometimes expensive because each call compiles our `Network` object into a more efficient model representation used internally.
+If we plan on simulating a particular instance several times, it is better to lift the parsing operation outside calls to `simulate`:
+
+```{julia}
 state, model = parse_model(network)
 ```
+
+Here `state` is a vector of population counts and `model` is a data structure encoding each reaction channel in our model.
+The output of a *single* simulation is a `SamplePath` object that tracks the state of a stochastic process over time.
+BioSimulator treats *multiple* realizations as an `Ensemble`, which is simply a collection of `SamplePath` objects.
+
+Now let's try running a larger simulation study:
+
+1. We will simulate our model until $t = 500$ to examine long-term behavior.
+2. We will capture the output of a single simulation in a variable called `trajectory`. This simulation will store every reaction event.
+3. We will generate $10^{3}$ samples of the process and store the results in `ensemble`. We sample the state of the process every 5 units of time.
 
 ```{julia}
 # simulation settings
@@ -106,7 +176,7 @@ trajectory = @time simulate(state, model, algorithm, tfinal = tfinal)
 println("number of event in a single trajectory: ", length(trajectory))
 
 # generate an ensemble
-ensemble = [simulate(state, model, algorithm,
+@time ensemble = [simulate(state, model, algorithm,
     tfinal = tfinal,
     save_points = save_pts) for _ in 1:ntrials];
 ```
@@ -116,9 +186,10 @@ ensemble = [simulate(state, model, algorithm,
 #### Working with output directly
 
 The output of a single simulation is a `SamplePath` object.
-It is a *recursive array* (thanks to RecursiveArrayTools.jl) that represents the state of a process $X_{t_{k}}$ at each time point $t_{k}$.
+It is a *recursive array* (thanks to [RecursiveArrayTools](https://github.com/JuliaDiffEq/RecursiveArrayTools.jl)) that represents the state of a process $X_{t_{k}}$ at each time point $t_{k}$.
 
-Recall the ordering ($\mathrm{gene_{on}$, $\mathrm{gene_{off}}$, $\mathrm{RNA}$, $P$, and $P_{2}$).
+Recall the ordering ($\mathrm{gene_{on}}$, $\mathrm{gene_{off}}$, $\mathrm{RNA}$, $P$, and $P_{2}$) we used in specifying our negative regulation model.
+This ordering is preserved internally and throughout the following examples.
 
 Access the $k$-th recorded state its index:
 
@@ -182,16 +253,17 @@ using Statistics
 mean(ensemble)
 ```
 
-#### Passing to `DataFrame` objects
+#### Passing to DataFrame
 
-Both `SamplePath` and `Ensemble` objects are compatible with the DataFrames.jl ecosystem in Julia.
+Both `SamplePath` and `Ensemble` objects are compatible with the [DataFrames](https://juliadata.github.io/DataFrames.jl/stable/) ecosystem in Julia.
 
-Convert a `SamplePath` into a `DataFrame`.
+**Converting a `SamplePath`.**
 The first column is always `t` and represents model time.
 The remaining columns are labeled `X1, X2, ...` and appear in the same order as defined in the original `Network` object.
 
 ```{julia}
-import BioSimulator: tablefy # conversion sometimes gives the wrong layout depending on the DataFrames version
+# conversion sometimes gives the wrong layout depending on the DataFrames version
+import BioSimulator: tablefy
 using DataFrames
 
 # create the DataFrame
@@ -204,14 +276,27 @@ rename!(df, [:time, :gene_on, :gene_off, :mRNA, :monomer, :dimer])
 last(df, 10)
 ```
 
-#### Plotting `SamplePath` data
+**Converting an `Ensemble`.**
+The two columns are always `trial` denoting the sample number `t` for time.
+The remaining columns are the same as in a `SamplePath`.
 
-A `SamplePath` object is fully compatible with the Plots.jl ecosystem, meaning the command `plot(trajectory)` just works.
-Load the Plots package and select the GR backend:
+```{julia}
+df = DataFrame(ensemble)
+rename!(df, [:trial, :time, :gene_on, :gene_off, :mRNA, :monomer, :dimer])
+last(df, 10)
+```
+
+The DataFrames documentation has examples on [data manipulation](https://juliadata.github.io/DataFrames.jl/stable/man/querying_frameworks/) and [import/export](https://juliadata.github.io/DataFrames.jl/stable/man/getting_started/#Importing-and-Exporting-Data-(I/O)-1)
+
+#### Plotting a SamplePath
+
+A `SamplePath` object is fully compatible with the [Plots](https://docs.juliaplots.org/latest/) ecosystem, meaning the command `plot(trajectory)` just works.
+
+Load the Plots package and select the (default) GR backend:
 
 ```{julia}
 using Plots
-gr(grid = false) # you can set default options for the plotting backend
+gr(format = :png, grid = false) # you can set default options for the plotting backend
 
 plot(trajectory)
 ```
@@ -266,7 +351,7 @@ plot(panelA, panelB,
     layout = @layout [a{0.35w} a{0.65w}])
 ```
 
-#### Plotting `Ensemble` data
+#### Plotting Ensemble data
 
 ##### Summary statistics
 
@@ -364,10 +449,7 @@ end
 mean(hitting_time), std(hitting_time)
 ```
 
-Compute the probability $\Pr(X_{4}(t) > 20)$ at $t = 25$ using the estimator
-$$
-\sum_{n} 1\left{X_{4}^{(n)}(t) > 20 \right}
-$$
+Compute the probability $\Pr(X_{4}(t) > 20)$ at $t = 25$ using the estimator $\sum_{n} 1\left\{X_{4}^{(n)}(t) > 20 \right\}$
 
 ```{julia}
 simdata = [simulate(state, model, algorithm, tfinal = 26.0, save_points = [0.0, 25.0]) for _ in 1:5*10^3]
