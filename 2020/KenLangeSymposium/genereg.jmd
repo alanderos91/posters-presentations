@@ -165,7 +165,7 @@ Now let's try running a larger simulation study:
 # simulation settings
 tfinal = 500.0
 algorithm = SortingDirect()
-ntrials = 10^0
+ntrials = 10^3
 save_pts = 0:10:tfinal
 
 # generate a single realization
