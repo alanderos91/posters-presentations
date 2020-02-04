@@ -1,0 +1,435 @@
+\documentclass{beamer}
+  
+  \usepackage[utf8]{inputenc}
+  \usetheme{Copenhagen}
+  
+  \title{Software Tools for Reproducible Research}
+  \author{Alfonso Landeros}
+  \date{February 6, 2020}
+  
+\begin{document}
+
+% frame each software tool in terms of "a job to be done"
+\frame{\titlepage}
+
+\begin{frame}{Overview}
+  \begin{itemize}
+    \item Why does this matter?
+
+    \item Version Control
+
+    \item Interactive Computing Environments
+
+    \item Free Open-Source Software
+
+  \end{itemize}
+\end{frame}
+
+%%%%% Why does this matter? %%%%%
+
+%%%%% on a practical level... %%%%%
+
+\begin{frame}{Why does this matter?}
+  Researchers often need to manage a number of documents: 
+  \begin{itemize}
+    \item manuscripts
+
+    \item notes
+
+    \item datasets
+
+    \item images
+
+    \item scripts
+  \end{itemize}
+
+  Today, many of those documents live on a computer.
+\end{frame}
+
+\begin{frame}{Why does this matter?}
+  \center
+  \includegraphics[width=0.8\textheight]{duke-potti-scandal}
+
+  \begin{itemize}
+    \item \tiny Potti et al (2006) Genomic signatures to guide the use of chemotherapeutics, Nature Medicine, 12(11):1294--1300.
+  \end{itemize}
+  
+
+  Good work habits help one achieve quality research.
+\end{frame}
+
+\begin{frame}{From Baggerly and Coombes (2009)}
+  \begin{quotation}
+    \noindent High-throughput biological assays such as microarrays let us ask very detailed questions about how diseases operate, and promise to let us personalize therapy.
+    \textbf{Data processing, however, is often not described well enough to allow for exact reproduction of the results, leading to exercises in “forensic bioinformatics”} where aspects of raw data and reported results are used to infer what methods \textbf{must} have been employed.
+  \end{quotation}
+\end{frame}
+
+\begin{frame}{Why does this matter?}
+  \center
+  \includegraphics[width=0.8\textwidth]{git-log-example}
+
+  Documenting one's work enhances collaboration.
+\end{frame}
+
+%%%%% on a philosophical level... %%%%%
+
+\begin{frame}{Why does this matter?}
+
+  \begin{quote}
+  An article about computational science in a scientific publication is \textbf{not} the scholarship itself, it is merely \textbf{advertising} of the scholarship.
+  The actual scholarship is the complete software development environment and the complete set of instructions which generated the figures.
+  \end{quote}
+  \center -- Buckheit and Donoho (1995)
+  \hfill \\
+
+  \center
+  Reproducibility is fundamental to science.
+\end{frame}
+
+%%%%% Version Control %%%%%
+
+\begin{frame}{Version Control}
+  \center
+  \includegraphics[height=0.8\textheight]{why-version-control}
+\end{frame}
+
+\begin{frame}{Version Control}
+  \begin{itemize}
+    \item Tracking different \textit{versions} of a document by hand is tedious and error-prone.
+
+    \item Tracking the \textit{history} of a changing document is cumbersome.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Git -- Distributed Version Control}
+  \center \includegraphics[width=0.5\textwidth]{git-example}
+  \begin{itemize}
+    \item Originally developed by Linus Torvaldis for managing the Linux kernel.
+
+    \item \textit{Distributed} in the sense that multiple people own and can edit copies of a repository.
+
+    \item Git operates on \textit{changes} between versions of a document.
+
+    \item Each version of a respository exists as a \textit{commit}, or snapshot.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Git -- Distributed Version Control}
+  \center
+  \includegraphics[height=0.8\textheight]{git-model}
+\end{frame}
+
+\begin{frame}{Git -- Distributed Version Control}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+        \item C: add a remote repository for backup
+        \item D: push the entire history to the remote
+        \item E: make local changes and commit them
+        \item F: push the changes to the remote
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \begin{figure}
+        \center
+        \includegraphics[height=0.75\textheight]{git-example-actions}
+      \end{figure}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Using Git Effectively}
+  \begin{figure}
+    \center
+    \includegraphics[width=0.7\textheight]{using-git-effectively}
+  \end{figure}
+
+  \begin{itemize}
+    \item Commit \textit{early} and \textit{often}.
+
+    \item Write informative commit messages.
+
+    \item Be judicious about what you commit: ``raw'' vs ``binary'' files
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{What should I Version Control?}
+  Generally, ``raw'' files are better suited for Git because it can track changes to individual bytes.
+
+  \hfill \\
+
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \center{Good}
+      \begin{itemize}
+        \item source files
+
+        \item \LaTeX\ files
+
+        \item Markdown
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \center{``Bad''}
+      \begin{itemize}
+        \item MS Office files
+
+        \item binary executables
+
+        \item images
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \hfill \\
+  
+  \textbf{Note for Manuscripts}: Place sentences on \textit{separate} lines so that Git can track changes.
+\end{frame}
+
+\begin{frame}{Diff Example}
+  \center
+  \includegraphics[width=0.7\textwidth]{diff-example}
+\end{frame}
+
+% working directory - the folder on your computer
+%
+% staging area - files that you tag to commit changes
+%   are said to be staged / in the staging area
+% 
+% Each commit has an associated message - this is crucial!
+%   a commit message should tell you what was changed and why
+%
+% local repo - your working repository; the collection of all the files in your folder + history + changes
+%
+% remote repo - a foreign version that lives on a server somewhere; usually your backup
+%
+% git add - tag for changes
+% git commit - apply the changes to the repo
+% git checkout - "checkout" some version of the repo
+% git merge - "combine" changes from different branches
+% git push - send the changes to your backup
+% git fetch - check for any changes in remote, but do not apply them to your repo
+\begin{frame}{Web-based Version Control Services}
+  \begin{figure}
+    \center
+    \includegraphics[width=0.2\textwidth]{github_mark}
+    \includegraphics[width=0.2\textwidth]{gitlab_mark}
+  \end{figure}
+
+  \begin{itemize}
+    \item Provides a central hub for a Git repository.
+
+    \item Great way to share your work with others, or backup your local working directory.
+
+    \item Provides an interface for discussing a project: issue tracking and documentation.
+
+    \item Both private and public options available.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{GitHub Example}
+  \center
+  \includegraphics[width=0.9\textwidth]{github-example}
+\end{frame}
+
+\begin{frame}{}
+  \center
+  \includegraphics[height=0.9\textheight]{frustrating-git}
+\end{frame}
+
+\begin{frame}{GitKraken -- Git without the Command Line}
+  \center \includegraphics[width=0.3\textwidth]{gitkraken_mark}
+
+  \begin{itemize}
+    \item Provides a button for the most used Git commands.
+
+    \item Cleaner visualizations compared to the Git defaults.
+
+    \item However, it is not as flexible as the command line tool.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{GitKraken -- Git without the Command Line}
+  \center
+  \includegraphics[width=\textheight]{gitkraken-demo}
+\end{frame}
+
+\begin{frame}{Pachyderm}
+  \center
+  \includegraphics[width=0.5\textwidth]{pachyderm-graph}
+  \begin{itemize}
+    \item Version control for data and data analysis.
+
+    \item The premise is that datasets may change over time and feed into complex analysis pipelines.
+
+    \item Pachyderm provides both services and the infrastructure to support data versioning.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Pachyderm - Version Control}
+  \center
+  \includegraphics[width=0.5\textwidth]{pachyderm-version}
+  \begin{itemize}
+    \item Ensures that all collaborators are working with the same datasets.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Pachyderm - Pipelines}
+  \center
+  \includegraphics[width=0.5\textwidth]{pachyderm-infrastructure}
+  \begin{itemize}
+    \item Provides computing environment equipped with all the resources needed to reproduce outputs.
+
+    \item Parallelism is built-in to the service.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Pachyderm - Data Provenance}
+  \center
+  \includegraphics[width=0.4\textwidth]{pachyderm-provenance}
+  \begin{itemize}
+    \item Allows one to identify the changes to datasets and processing pipelines that produce different results.
+  \end{itemize}
+\end{frame}
+
+% Git - version control for "raw" files
+% -- automates versioning of documents
+
+% GitKraken - GUI for Git
+% -- Git without the command line
+% -- visual representation of your repository
+% -- remove burden of remembering every command
+
+% GitHub - online version of Git
+% -- provides a backup of your work history
+
+% GitLab - same as GitHub
+% -- also provides a private version that can be used by an ambitious team
+
+% Pachyderm - version control for data analysis
+% -- keep data analysis workflows sane and easy to debug
+
+% Applications - writing a paper!
+% -- what should be versioned?
+% -- how can you share it with collaborators?
+% -- how can you track changes in your documents?
+
+\begin{frame}{Interactive Computing Environments}
+  There is a sizeable amount of diversity in the machines used for scientific work:
+  \begin{itemize}
+    \item operating systems
+
+    \item hardware components
+
+    \item software resources
+
+    \item software versions
+  \end{itemize}
+\end{frame}
+
+% Jupyter / Jupyter Notebook/Lab - living, self-contained documents
+% -- 
+
+\begin{frame}{Jupyter -- living, self-contained documents}
+  \center
+  \includegraphics[width=0.7\textwidth]{jupyter-example}
+\end{frame}
+
+\begin{frame}{Jupyter -- living, self-contained documents}
+  \begin{itemize}
+    \item Project that grew out of the IPython environment created by Fernando Perez.
+
+    \item Supports multiple programming and scripting languages.
+
+    \item Jupyter \textbf{notebooks} are interactive documents that execute a long script.
+
+    \item Each document is made up of \textit{cells}: individual blocks of code or text.
+
+    \item The document is annotated using Markdown and \LaTeX.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Markdown Cell Example}
+  \center
+  \includegraphics[width=\textwidth]{markdown-example2}
+\end{frame}
+
+\begin{frame}{Markdown Cell Example}
+  \center
+  \includegraphics[width=\textwidth]{markdown-example1}
+\end{frame}
+
+\begin{frame}{JupyterLab}
+  \center
+  \includegraphics[width=0.8\textwidth]{jupyterlab-example}
+  \begin{itemize}
+    \item An integrated environment that allows one to manage multiple notebooks, source files, and processes.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Putting Everything Together}
+  \begin{itemize}
+    \item Research Journal
+
+    \item Manuscripts
+
+    \item Thesis Project
+
+    \item Personal Website
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Example: Personal Website}
+  \center
+  \includegraphics[width=\textwidth]{personal-page-example1}
+\end{frame}
+
+\begin{frame}{Example: Personal Website}
+  \center
+  \includegraphics[width=\textwidth]{personal-page-example2}
+\end{frame}
+
+\begin{frame}{Free Open-Source Software vs Proprietary Software}
+  \begin{itemize}
+    \item Many of the products listed here are not only free, but \textit{open-source}.
+
+    \item Anyone with a computer and internet access can view, modify, and build the source code.
+
+    \item Commercial software rarely has this level of transparency.
+  \end{itemize}
+\end{frame}
+
+% Motivating Examples: Numerical Recipes, MATLAB, Mathematica
+
+% Interdependence; example: MacOS
+
+% Main Takeaways:
+%
+% 1. Researchers often need to manage a number of documents - notes, manuscripts, analysis / computational code.
+%
+% 2. Software engineers have accrued a number of tools that automate many aspects of their workflow.
+% Some of these tools have overlap with a scientist's workflow, especially in an age where scientific computing and data analysis are front-and-center.
+%
+% 3. ???
+%
+
+\begin{frame}{Acknowledgements}
+  For forcing me to learn Git:
+  \begin{itemize}
+    \item Dr.\ Marc Suchard
+    \item Dr.\ Hua Zhou
+  \end{itemize}
+
+  For actually learning Git and practicing reproducibility:
+  \begin{itemize}
+    \item BIOMATH 204: Biomedical Data Analysis
+    \item BIOSTAT M280: Statistical Computing
+  \end{itemize}
+
+  \center Thank you!
+\end{frame}
+
+\end{document}
