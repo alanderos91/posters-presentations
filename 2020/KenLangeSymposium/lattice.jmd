@@ -1,11 +1,65 @@
 ---
 title: Discrete spatial models in BioSimulator.jl
 options:
-    fig_ext: .svg
+    fig_ext: .png
 ---
 
 ```{julia}
-# TODO: installation script
+using BioSimulator
+```
+
+## Predator-prey dynamics
+
+This example considers the Lotka-Volterra equations
+$$
+\begin{align*}
+\frac{dx}{dt} &= \alpha x - \beta xy \\
+\frac{dy}{dt} &= \delta x y - \gamma y
+\end{align*}
+$$
+where $x$ tracks a population of rabbits and $y$ represents a population of foxes.
+Here $\alpha$ and $\delta$ encode reproduction rates, whereas $\beta$ and $\gamma$ correspond to predation and death, respectively.
+These two populations are subject to oscillations whenever all four interaction parameters are non-zero.
+
+This tutorial demonstrates how to translate a general predator-prey model into a spatial model with volume exclusion effects.
+
+### Model specification
+
+1. Define a base model that encodes all the interaction rules.
+2. Generate the full model by specifying lattice topology.
+3. Define initial conditions.
+
+#### Defining a base model
+
+```{julia}
+base_model = @def_reactions begin
+    Fox + 0 --> 0 + Fox, α1
+    Rabbit + 0 --> 0 + Rabbit, α2
+    Rabbit + 0 --> Rabbit + Rabbit, β
+    Fox + Rabbit --> Fox + Fox, γ
+    Rabbit --> 0, δ1
+    Fox --> 0, δ2
+end α1 α2 β γ δ1 δ2
+```
+
+### Adding lattice topology
+
+```{julia}
+α1 = 1.0
+α2 = 1.0
+β = 2.0
+γ = 1.5
+δ1 = 1.0
+δ2 = 0.5
+
+params = [α1, α2, β, γ, δ1, δ2]
+
+model = @enumerate_with_sclass base_model VonNeumann() 2 params
+```
+
+### Setting up initial conditions
+
+```{julia}
 function generate_random_2Dpoints(xlim, ylim, saturation; boundary = false)
     area = (xlim[2] - xlim[1] + 1) * (ylim[2] - ylim[1] + 1)
     n = Int(ceil(area * saturation))
@@ -42,42 +96,6 @@ function generate_random_2Dpoints(xlim, ylim, saturation; boundary = false)
     return points
 end
 ```
-
-```{julia}
-using BioSimulator
-```
-
-## Model specification
-
-### Base model
-
-```{julia}
-base_model = @def_reactions begin
-    Fox + 0 --> 0 + Fox, α1
-    Rabbit + 0 --> 0 + Rabbit, α2
-    Rabbit + 0 --> Rabbit + Rabbit, β
-    Fox + Rabbit --> Fox + Fox, γ
-    Rabbit --> 0, δ1
-    Fox --> 0, δ2
-end α1 α2 β γ δ1 δ2
-```
-
-### Adding lattice topology
-
-```{julia}
-α1 = 1.0
-α2 = 1.0
-β = 2.0
-γ = 1.5
-δ1 = 1.0
-δ2 = 0.5
-
-params = [α1, α2, β, γ, δ1, δ2]
-
-model = @enumerate_with_sclass base_model VonNeumann() 2 params
-```
-
-### Setting up initial conditions
 
 ```{julia}
 coord = generate_random_2Dpoints((1,100), (1,100), 0.2)
