@@ -1,6 +1,7 @@
 \documentclass{beamer}
   
   \usepackage[utf8]{inputenc}
+  \usepackage[labelformat=empty]{caption}
   \usetheme{Copenhagen}
   
   \title{Software Tools for Reproducible Research}
@@ -36,7 +37,7 @@
 
     \item notes
 
-    \item datasets
+    \item data
 
     \item images
 
@@ -58,16 +59,18 @@
   Good work habits help one achieve quality research.
 \end{frame}
 
-\begin{frame}{From Baggerly and Coombes (2009)}
-  \begin{quotation}
+\begin{frame}{Why does this matter?}
+  \begin{quote}
     \noindent High-throughput biological assays such as microarrays let us ask very detailed questions about how diseases operate, and promise to let us personalize therapy.
-    \textbf{Data processing, however, is often not described well enough to allow for exact reproduction of the results, leading to exercises in “forensic bioinformatics”} where aspects of raw data and reported results are used to infer what methods \textbf{must} have been employed.
-  \end{quotation}
+    \textbf{Data processing, however, is often not described well enough to allow for exact reproduction of the results, leading to exercises in ``forensic bioinformatics''} where aspects of raw data and reported results are used to infer what methods \textbf{must} have been employed.
+  \end{quote}
+  \center --- Baggerly and Coombes (2009)
+  \hfill \\
 \end{frame}
 
 \begin{frame}{Why does this matter?}
   \center
-  \includegraphics[width=0.8\textwidth]{git-log-example}
+  \includegraphics[width=1.0\textwidth]{git-log-example}
 
   Documenting one's work enhances collaboration.
 \end{frame}
@@ -103,7 +106,7 @@
 \end{frame}
 
 \begin{frame}{Git -- Distributed Version Control}
-  \center \includegraphics[width=0.5\textwidth]{git-example}
+  \center \includegraphics[width=1.0\textwidth]{git-example}
   \begin{itemize}
     \item Originally developed by Linus Torvaldis for managing the Linux kernel.
 
@@ -117,12 +120,12 @@
 
 \begin{frame}{Git -- Distributed Version Control}
   \center
-  \includegraphics[height=0.8\textheight]{git-model}
+  \includegraphics[height=0.85\textheight]{git-model}
 \end{frame}
 
 \begin{frame}{Git -- Distributed Version Control}
   \begin{columns}
-    \begin{column}{0.5\textwidth}
+    \begin{column}{0.6\textwidth}
       \begin{itemize}
         \item C: add a remote repository for backup
         \item D: push the entire history to the remote
@@ -143,7 +146,10 @@
 \begin{frame}{Using Git Effectively}
   \begin{figure}
     \center
-    \includegraphics[width=0.7\textheight]{using-git-effectively}
+    \includegraphics[width=0.75\textheight]{using-git-effectively}
+    \caption{
+      Credit: \url{https://xkcd.com/1296/}
+    }
   \end{figure}
 
   \begin{itemize}
@@ -169,6 +175,8 @@
         \item \LaTeX\ files
 
         \item Markdown
+        
+        \item uncompressed data
       \end{itemize}
     \end{column}
 
@@ -180,10 +188,13 @@
         \item binary executables
 
         \item images
+        
+        \item \texttt{.ipynb} files
       \end{itemize}
     \end{column}
   \end{columns}
 
+  \hfill \\
   \hfill \\
   
   \textbf{Note for Manuscripts}: Place sentences on \textit{separate} lines so that Git can track changes.
@@ -191,7 +202,29 @@
 
 \begin{frame}{Diff Example}
   \center
-  \includegraphics[width=0.7\textwidth]{diff-example}
+  \includegraphics[width=0.85\textwidth]{diff-example}
+\end{frame}
+
+\begin{frame}{Git Large File Storage (LFS)}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \begin{figure}[]
+        \centering
+        \includegraphics[width=0.9\textwidth]{git-lfs.png}
+        \caption{}
+      \end{figure}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+        \item Preserves Git workflow
+
+        \item Tracked files are uploaded once and monitored as pointers
+
+        \item Keeps total size down and push/pull operations fast
+      \end{itemize}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 % working directory - the folder on your computer
@@ -231,13 +264,18 @@
 \end{frame}
 
 \begin{frame}{GitHub Example}
-  \center
-  \includegraphics[width=0.9\textwidth]{github-example}
+  \begin{figure}
+    \includegraphics[width=1.0\textwidth]{github-example}
+  \end{figure}
 \end{frame}
 
 \begin{frame}{}
-  \center
-  \includegraphics[height=0.9\textheight]{frustrating-git}
+  \begin{figure}
+    \includegraphics[height=0.8\textheight]{frustrating-git}
+    \caption{
+      Credit: \url{https://xkcd.com/1597/}
+    }
+  \end{figure}
 \end{frame}
 
 \begin{frame}{GitKraken -- Git without the Command Line}
@@ -253,46 +291,10 @@
 \end{frame}
 
 \begin{frame}{GitKraken -- Git without the Command Line}
-  \center
-  \includegraphics[width=\textheight]{gitkraken-demo}
-\end{frame}
-
-\begin{frame}{Pachyderm}
-  \center
-  \includegraphics[width=0.5\textwidth]{pachyderm-graph}
-  \begin{itemize}
-    \item Version control for data and data analysis.
-
-    \item The premise is that datasets may change over time and feed into complex analysis pipelines.
-
-    \item Pachyderm provides both services and the infrastructure to support data versioning.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Pachyderm - Version Control}
-  \center
-  \includegraphics[width=0.5\textwidth]{pachyderm-version}
-  \begin{itemize}
-    \item Ensures that all collaborators are working with the same datasets.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Pachyderm - Pipelines}
-  \center
-  \includegraphics[width=0.5\textwidth]{pachyderm-infrastructure}
-  \begin{itemize}
-    \item Provides computing environment equipped with all the resources needed to reproduce outputs.
-
-    \item Parallelism is built-in to the service.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Pachyderm - Data Provenance}
-  \center
-  \includegraphics[width=0.4\textwidth]{pachyderm-provenance}
-  \begin{itemize}
-    \item Allows one to identify the changes to datasets and processing pipelines that produce different results.
-  \end{itemize}
+  \begin{figure}
+    \centering
+    \includegraphics[width=\textheight]{gitkraken-demo}
+  \end{figure}
 \end{frame}
 
 % Git - version control for "raw" files
@@ -368,6 +370,47 @@
   \begin{itemize}
     \item An integrated environment that allows one to manage multiple notebooks, source files, and processes.
   \end{itemize}
+\end{frame}
+
+\begin{frame}{Literate programming -- programs are essays}
+  A programming paradigm credited to Donald Knuth that integrates human-readable explanatory text with program logic within the same environment.
+
+  \begin{itemize}
+    \item R: \href{https://support.rstudio.com/hc/en-us/articles/200552056-Using-Sweave-and-knitr}{Sweave}, \href{https://www.r-project.org/nosvn/pandoc/knitr.html}{Knitr}
+    \item Python: \href{https://github.com/simsor/PyWeb}{PyWeb}
+    \item Julia: \href{https://github.com/JunoLab/Weave.jl}{Weave}
+    \item Multi-language: \href{https://jupyter.org/}{Jupyter notebooks}, \href{https://orgmode.org/}{Emacs org-mode}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Weave source}
+  \begin{figure}[]
+    \centering
+    \includegraphics[width=1.0\textwidth]{weave-example-source.png}
+    \caption{
+      Credit: \url{https://github.com/JuliaDiffEq/DiffEqBenchmarks.jl}
+    }
+  \end{figure}
+\end{frame}
+
+\begin{frame}{Weave to PDF output}
+  \begin{figure}[]
+    \centering
+    \includegraphics[width=1.0\textwidth]{weave-example-pdf.png}
+    \caption{
+      Credit: \url{https://github.com/JuliaDiffEq/DiffEqBenchmarks.jl}
+    }
+  \end{figure}
+\end{frame}
+
+\begin{frame}{Weave to many formats}
+  \begin{figure}[]
+    \centering
+    \includegraphics[width=1.0\textwidth]{weave-example-output.png}
+    \caption{
+      Credit: \url{https://github.com/JuliaDiffEq/DiffEqBenchmarks.jl}
+    }
+  \end{figure}
 \end{frame}
 
 \begin{frame}{Putting Everything Together}
