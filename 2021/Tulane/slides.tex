@@ -1,0 +1,341 @@
+% !TEX program = xelatex
+\documentclass[8pt]{beamer}
+\useoutertheme{metropolis}
+\useinnertheme{metropolis}
+\usefonttheme{metropolis}
+\usecolortheme{owl}
+
+\usepackage{animate}
+\usepackage{blkarray}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{mathtools}
+
+% theme colors
+\setbeamercolor{background canvas}{bg=black!80}
+\setbeamercolor{frametitle}{bg=black!70}
+
+% \addbibresource{references.bib}
+
+% %remove the icon
+% \setbeamertemplate{bibliography item}{}
+
+% %remove line breaks
+% \setbeamertemplate{bibliography entry title}{}
+% \setbeamertemplate{bibliography entry location}{}
+% \setbeamertemplate{bibliography entry note}{}
+
+% hyperref options
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=red,
+}
+
+% phantom characters for tidy typesetting
+\newcommand{\phm}{\hphantom{+}}
+
+% setting derivatives
+\newcommand{\ddt}[1]{\frac{\mathrm{d}#1}{\mathrm{d}t}}
+
+% titlepage
+\title{An Examination of Reopening Strategies}
+\author{Alfonso Landeros, Department of Computational Medicine @ UCLA}
+\date{February 26, 2021}
+
+% fix overfull \vbox in metropolis theme
+\def\titlepage{%
+  \usebeamertemplate{title page}%<---
+}
+
+\begin{document}
+\maketitle
+
+%%%%% presentation outline %%%%%
+\begin{frame}{Outline}
+\begin{itemize}
+    \item Background
+    \item (Simplifying) modelling assumptions
+    \item Stratefied SEIR model
+    \item Robustness of transmission assumptions
+    \item Impact of mitigation strategies
+    \item Simulating school reopening
+\end{itemize}
+\end{frame}
+
+%%%%% Background %%%%%
+\section{Background}
+
+\begin{frame}{Background: Demographic and epidemiologic characteristics}
+%
+\begin{itemize}
+    \item School districts have median 22\% of local population under 18 years of age~\footnotemark[1].
+    \item Cumulative cases in children: August 6, 2020 9.1\% / February 4, 2021 12.9\%~\footnotemark[2].
+    \item Rare complication: Multisystem Inflammatory Syndrome in Children (MIS-C)~\footnotemark[3].
+    \item Evidence that children have lower susceptibility compared to adults~\footnotemark[4].
+    \begin{itemize}
+        \item Adolescents may be more similar to adults.
+    \end{itemize}
+    \item Children typically present with milder symptoms~\footnotemark[5], which makes detection and surveillance challenging.
+\end{itemize}
+
+\footnotetext[1]{National Center for Education Statistics. ACS-ED 2014-2018.}
+\footnotetext[2]{Academy of American Pediatricians \& Children's Hospital Association. State data report. https://services.aap.org/en/pages/2019-novel-coronavirus-covid-19-infections/children-and-covid-19-state-level-data-report/}
+\footnotetext[3]{Health Alert Network. MIS-C Associated with COVID-19. https://emergency.cdc.gov/han/2020/han00432.asp}
+\footnotetext[4]{Viner RM et al. Susceptibility to SARS-CoV-2 Infection Among Children and Adolescents Compared With Adults: A Systematic Review and Meta-analysis. JAMA Pediatr. 2021 Feb 1;175(2):143.}
+\footnotetext[5]{Ludvigsson JF. Systematic review of COVID-19 in children shows milder cases and a better prognosis than adults. Acta Paediatrica. 2020;109(6):1088–95.}
+\end{frame}
+
+\begin{frame}{Background: Demographic and epidemiologic characteristics}
+\begin{itemize}
+    \item {\bf Latent period}: time between exposure and onset of infectiousness ($\approx 3$ days~\textsuperscript{1,2})
+    \item {\bf Infectious period}: duration of infectiousness ($\approx 4$ days; half-maximum~\textsuperscript{1,2})
+    \item {\bf Incubation period}: time between exposure and symptoms ($\approx 5$ days~\textsuperscript{1,3})
+    \item {\bf Basic reproduction number}: expected number of secondary cases (2--4~\textsuperscript{1})
+\end{itemize}
+
+\footnotetext[1]{Li R et al. Substantial undocumented infection facilitates the rapid dissemination of novel coronavirus (SARS-CoV-2). Science. 2020 May 1;368(6490):489–93.}
+\footnotetext[2]{He X et al. Temporal dynamics in viral shedding and transmissibility of COVID-19. Nature Medicine. 2020 May;26(5):672–5.}
+\footnotetext[3]{Lauer SA et al. The Incubation Period of Coronavirus Disease 2019 (COVID-19) From Publicly Reported Confirmed Cases: Estimation and Application. Annals of Internal Medicine. 2020 Mar 10;172(9):577–82.}
+\footnotetext[4]{Bar-On YM et al. SARS-CoV-2 (COVID-19) by the numbers. Eisen MB, editor. eLife. 2020 Mar 31;9:e57309}
+\end{frame}
+
+\begin{frame}{Background: distribution of children and adults across school districts}
+%
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/S1_fig.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Background: What is transmission?}
+%
+Transmission is understood in the following sense:
+\begin{align*}
+    \text{transmission}
+    &= F(\text{susceptibility}, \text{infectivity}, \text{contact}) \\
+    &= \text{probability of infection per contact} \times \text{average contact per unit time} 
+\end{align*}
+%
+Subject to changes in
+\begin{itemize}
+    \item contact patterns
+    \item human behavior and interventions
+    \item virulence
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Background: Contact matrices}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/zhang2020.png}
+\end{figure}
+
+Zhang J et al. Changes in contact patterns shape the dynamics of the COVID-19 outbreak in China. Science. 2020 Jun 26;368(6498):1481–6. 
+\end{frame}
+
+%%%%% Modelling Assumptions %%%%%
+\section{Modelling Assumptions}
+
+\begin{frame}{Modelling Assumptions}
+\begin{itemize}
+    \item Simulated population represents a community surrounding a school.
+    \item Consider two age classes: K-12 children and adults.
+    \item Population further stratified into cohorts.
+    \begin{itemize}
+        \item Multiple rotating cohorts that trade off every week, or
+        \item a hybrid approach with one in-person cohort and a remote learning cohort.
+    \end{itemize}
+    \item Both age classes exihibit homogeneous disease behavior in terms of {\it latency} and {\it duration of infectiousness}.
+    \item Transmission between children may be higher while attending school.
+    \item No vital dynamics -- no births or deaths.
+    \item Individuals removed from infectious pool do not become susceptible again.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Modelling Assumptions: Transmission}
+%
+Since we do not understand how existing evidence translates to all transmission rates, want to separate scale from type of interaction.
+\begin{itemize}
+    \item $\beta_{0}$: scale; aggregate property of population.
+    \item $f_{ij}$: weight; strength of contribution due to $i \to j$ transmission.
+\end{itemize}
+Define rate of transmission from individual in age class $i$ to age class $j$ as
+\begin{equation*}
+    \beta_{ij} = \beta_{0} \times f_{ij}
+\end{equation*}
+For children, transmission modeled using a time-inhomogeneous rate by introducing a multiplier that captures the effect of increased contacts
+\begin{equation*}
+    \beta_{11}(t) = c(t) \times \beta_{0} \times f_{11}
+\end{equation*}
+\end{frame}
+
+%%%%% SEIR Equations %%%%%
+\section{Stratefied SEIR model}
+
+\begin{frame}{SEIR: Overview}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/Fig1.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}{SEIR: Compartments}
+\begin{itemize}
+    \item $S(t)$: susceptible to infection
+    \item $E(t)$: exposed to infection
+    \item $I(t)$: infected
+    \item $R(t)$: removed; not infectious and may have additional morbidities
+\end{itemize}
+
+Expressed as fraction of population; i.e. \# in compartment / population size
+\end{frame}
+
+\begin{frame}{SEIR: Force of Infection}
+Force of infection on an individual in class $j$ and cohort $k$:
+
+\begin{eqnarray*}
+    \lambda_{jk}(t) &=&
+    \sum_{\text{cohort}~\ell}~\sum_{\text{age class}~i}
+    \left(\parbox{6em}{\centering interaction between cohorts $k,\ell$}\right)
+    \times
+    \left(\parbox{6em}{\centering transmission from age group $i \rightarrow j$}\right)
+    \times
+    \left(\parbox{6em}{\centering fraction of infecteds in age group $i$, and cohort $\ell$}\right) \\
+    &=&
+    \sum_{\ell} \sum_{i}
+    \alpha_{k\ell}
+    \times
+    \beta_{ij}
+    \times
+    I_{i\ell}(t).
+    \end{eqnarray*}
+\end{frame}
+
+\begin{frame}{SEIR: ODEs}
+\begin{alignat*}{2}
+    &\text{Children} &\qquad &\text{Adults} \\
+    \ddt{S_{1k}} &= - \lambda_{1k} S_{1k}                   &\qquad
+    \ddt{S_{2k}} &= - \lambda_{2k} S_{2k}                   \\
+    \ddt{E_{1k}} &= \lambda_{1k} S_{1k} - \sigma_{1} E_{1k} &\qquad
+    \ddt{E_{2k}} &= \lambda_{2k} S_{2k} - \sigma_{2} E_{2k} \\
+    \ddt{I_{1k}} &= \sigma_{1} E_{1k} - \gamma_{1} I_{1k}   &\qquad
+    \ddt{I_{2k}} &= \sigma_{2} I_{2k} - \gamma_{2} I_{2k}   \\
+    \ddt{R_{1k}} &= \gamma_{1} I_{1k}                       &\qquad
+    \ddt{R_{2k}} &= \gamma_{2} I_{2k},
+\end{alignat*}
+\end{frame}
+
+%%%%% Result 1 - child-adult transmission is key %%%%%
+\section{Robustness of transmission assumptions}
+
+\begin{frame}{Under symmetric mode of transmission}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/Fig2ABC.png}
+\end{figure}
+
+Fix $\beta_{0}=1.5$ and vary $f_{ij}$.
+\end{frame}
+
+\begin{frame}{Weak child-child transmission}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/Fig2DEF.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Weak adult-adult transmission}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/Fig2GHI.png}
+\end{figure}
+\end{frame}
+
+%%%%% Result 2 - cohorts are impactful strategies %%%%%
+\section{Impact of mitigation strategies}
+
+\begin{frame}{Cohorts have a larger impact compared to targeting transmission rates}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.87\textwidth]{figures/Fig6.png}
+\end{figure}
+\begin{itemize}
+    \item Fix $\beta_{0} = 1.2$, $f_{11} = 0.1$, $f_{12} = 0.25$, $f_{21} = 0.15$, and $f_{22} = 0.5$.
+    \item Reduce $\beta_{22}$ by 40\%, then vary $\beta_{11} \times (1-s)$ and $\beta_{12} \times (1-s)$.
+\end{itemize}
+\end{frame}
+
+%%%%% Result 3 - testing and reclosing are important %%%%%
+\section{School reopening}
+
+\begin{frame}{Defining a stopping time}    
+\[
+    t_{\text{threshold}} = \inf~
+    \left\{
+        t \in T : \sum_{s \in \text{window}(t)} C(s) \ge 5 \%
+    \right\}
+\]
+
+\begin{itemize}
+    \item Each child attending school is administered a test at each time $t$ in the test time set $T$, which we take to be every school day.
+    \item The quantity $C(s) = \text{sensitivity} \times I_{1k} / q$ represents detected cases due to the active cohort $k$, adjusted for the population size of children $q$.
+    \item The sum is taken over a sliding window at time $t$ extending up to 14 days in the past~\footnotemark[1]. A school closes once the 14-day prevalence in school chldren reaches $5\%$.
+\end{itemize}
+
+\footnotetext[1]{Office of Governor Gavin Newsom. Governor Gavin Newsom Lays Out Pandemic Plan for Learning and Safe Schools. 2020. https://www.gov.ca.gov/2020/07/17/governor-gavin-newsom-lays-out-pandemic-plan-for-learning-and-safe-schools/}
+\end{frame}
+
+\begin{frame}{Stopping time as a function of cohorts and initial infected}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.60\textwidth]{figures/Fig3.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Impact of testing and prevalence threshold rule}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/Fig4.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Hybrid approach can avoid closure}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{figures/Fig5.png}
+\end{figure}
+\end{frame}
+
+%%%%% Conclusions %%%%%
+\section{Summary}
+
+\begin{frame}{Concluding Remarks}
+Summary of results:
+\begin{itemize}
+    \item Child-adult transmission needs to be better understood.
+    \item Minimizing contact through cohorts may be more impactful compared to direct transmission mitigation.
+    \item Local prevalence is important in deciding when to reopen; the potential for increased child-child contact less so.
+    \item Test sensitivity is secondary to a rapid surveillance program.
+\end{itemize}
+
+Takeaways:
+\begin{itemize}
+    \item A simple model can be a good platform for thinking about a problem.
+    \item (Applied) mathematicians can have an impact outside of mathematics.
+\end{itemize}
+\end{frame}
+
+%%%%% Acknowledgements %%%%%
+\begin{frame}{Acknowledgements}
+\begin{itemize}
+    \item Xiang Ji, Tulane University
+    \item Timothy Stutz, UCLA
+    \item Jason Xu, Duke University
+    \item Kenneth Lange, UCLA
+    \item Mary Sehl, UCLA
+    \item Janet Sinsheimer, UCLA
+\end{itemize}
+\end{frame}
+
+\end{document}
